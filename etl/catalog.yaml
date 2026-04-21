@@ -1,0 +1,49 @@
+# Curated catalog of time series from apis.datos.gob.ar
+# Each module groups related series. IDs follow the SSPM (Secretaría de Política Económica) catalog.
+#
+# To find new IDs: https://datos.gob.ar/series or search endpoint
+#   https://apis.datos.gob.ar/series/api/search/?q=<query>
+#
+# IMPORTANT: API IDs are opaque and must be verified against the live catalog.
+# If a series is discontinued or replaced, this file is the single place to update.
+
+ipc:
+  name: "Índice de Precios al Consumidor"
+  source: "INDEC"
+  description: "IPC Nacional base diciembre 2016 = 100"
+  series:
+    # Nivel general y categorías (núcleo / estacional / regulados)
+    - id: "148.3_INIVELNAL_DICI_M_26"
+      key: "nivel_general"
+      label: "Nivel general"
+      category: "agregado"
+    - id: "148.3_INUCLEONAL_DICI_M_22"
+      key: "nucleo"
+      label: "IPC Núcleo"
+      category: "clasificacion"
+    - id: "148.3_IESTACIONALNAL_DICI_M_16"
+      key: "estacional"
+      label: "Estacionales"
+      category: "clasificacion"
+    - id: "148.3_IREGULADOSNAL_DICI_M_18"
+      key: "regulados"
+      label: "Regulados"
+      category: "clasificacion"
+
+    # Divisiones principales (las 12 divisiones del IPC — arrancamos con 4 clave)
+    - id: "148.3_IALIMYBEBNAL_DICI_M_10"
+      key: "alimentos_bebidas"
+      label: "Alimentos y bebidas no alcohólicas"
+      category: "division"
+    - id: "148.3_IVIVNAL_DICI_M_21"
+      key: "vivienda"
+      label: "Vivienda, agua, electricidad y otros combustibles"
+      category: "division"
+    - id: "148.3_ITRANSNAL_DICI_M_24"
+      key: "transporte"
+      label: "Transporte"
+      category: "division"
+    - id: "148.3_ISALUDNAL_DICI_M_12"
+      key: "salud"
+      label: "Salud"
+      category: "division"

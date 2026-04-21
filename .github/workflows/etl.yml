@@ -1,0 +1,87 @@
+name: Refresh data (ETL)
+
+on:
+  # Monthly schedule: day 20 at 17:00 UTC (14:00 ART).
+  # INDEC typically publishes IPC around day 15, so day 20 is a safe margin.
+  schedule:
+    - cron: "0 17 20 * *"
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to refresh (ipc, or leave empty for all configured)"
+        required: false
+        default: "ipc"
+      start_date:
+        description: "Start date (YYYY-MM-DD)"
+        required: false
+        default: "2017-01-01"
+
+# Need write access to commit back to main
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    name: Fetch and commit snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so the commit is clean
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests (fail fast if code is broken)
+        run: pytest etl/tests/ -q
+
+      - name: Run ETL
+        env:
+          MODULE: ${{ github.event.inputs.module || 'ipc' }}
+          START_DATE: ${{ github.event.inputs.start_date || '2017-01-01' }}
+        run: |
+          python -m etl.run --module "$MODULE" --start-date "$START_DATE"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet data/snapshots/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No data changes detected."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Data snapshot(s) changed."
+            git diff --stat data/snapshots/
+          fi
+
+      - name: Commit and push updated snapshots
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/snapshots/
+          git commit -m "chore(data): refresh snapshots $(date -u +%Y-%m-%d)"
+          git push origin main
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### ETL Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.changes.outputs.changed }}" = "true" ]; then
+            echo "Data updated and committed to main." >> $GITHUB_STEP_SUMMARY
+            echo "The deploy workflow will run automatically on the new commit." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No data changes. Nothing to commit." >> $GITHUB_STEP_SUMMARY
+          fi

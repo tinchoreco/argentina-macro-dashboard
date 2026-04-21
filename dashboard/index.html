@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Argentina Macro — IPC</title>
+  <meta name="description" content="Dashboard de indicadores macroeconómicos de Argentina. Índice de Precios al Consumidor." />
+
+  <!-- Fonts: Fraunces (editorial serif) + JetBrains Mono (data) + Inter for small UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <!-- Ambient background grain + grid -->
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <div class="ambient-grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <div class="site-brand">
+        <span class="site-brand__mark">AR·</span>
+        <span class="site-brand__name">Macro Monitor</span>
+      </div>
+      <nav class="site-nav">
+        <a href="#" class="site-nav__link site-nav__link--active">IPC</a>
+        <span class="site-nav__link site-nav__link--disabled" title="Próximamente">EMAE</span>
+        <span class="site-nav__link site-nav__link--disabled" title="Próximamente">Empleo</span>
+        <span class="site-nav__link site-nav__link--disabled" title="Próximamente">Comex</span>
+      </nav>
+      <div class="site-header__meta">
+        <span class="site-header__label">Fuente</span>
+        <span class="site-header__value" id="source-label">INDEC</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <!-- Headline: the editorial "cover" of the dashboard -->
+    <section class="headline" id="headline" aria-live="polite">
+      <div class="headline__eyebrow">
+        <span class="headline__dot" aria-hidden="true"></span>
+        Índice de Precios al Consumidor
+      </div>
+      <h1 class="headline__title">
+        Inflación<br />
+        <span class="headline__title-accent">mensual.</span>
+      </h1>
+
+      <div class="headline__stats">
+        <div class="stat-card stat-card--primary">
+          <span class="stat-card__label">Variación mensual</span>
+          <span class="stat-card__value" id="headline-mom">—</span>
+          <span class="stat-card__period" id="headline-mom-period">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Interanual</span>
+          <span class="stat-card__value" id="headline-yoy">—</span>
+          <span class="stat-card__period" id="headline-yoy-period">12 meses</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Índice (Dic-2016=100)</span>
+          <span class="stat-card__value stat-card__value--dim" id="headline-level">—</span>
+          <span class="stat-card__period" id="headline-level-period">—</span>
+        </div>
+      </div>
+
+      <p class="headline__note" id="headline-note">
+        Dato más reciente disponible.
+      </p>
+    </section>
+
+    <!-- View toggle -->
+    <section class="views" aria-label="Vistas del dashboard">
+      <div class="view-tabs" role="tablist">
+        <button
+          type="button"
+          class="view-tab view-tab--active"
+          role="tab"
+          aria-selected="true"
+          data-view="variations"
+        >
+          <span class="view-tab__num">01</span>
+          <span class="view-tab__name">Variaciones</span>
+        </button>
+        <button
+          type="button"
+          class="view-tab"
+          role="tab"
+          aria-selected="false"
+          data-view="levels"
+        >
+          <span class="view-tab__num">02</span>
+          <span class="view-tab__name">Serie histórica</span>
+        </button>
+        <button
+          type="button"
+          class="view-tab"
+          role="tab"
+          aria-selected="false"
+          data-view="breakdown"
+        >
+          <span class="view-tab__num">03</span>
+          <span class="view-tab__name">Detalle</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Views -->
+    <section class="panel panel--variations" data-panel="variations">
+      <div class="panel__head">
+        <h2 class="panel__title">Variaciones porcentuales</h2>
+        <p class="panel__desc">
+          Barras: variación mensual. Línea: variación interanual (eje derecho).
+        </p>
+        <div class="series-picker" id="variations-picker" role="group" aria-label="Seleccionar serie"></div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-variations"></canvas>
+      </div>
+    </section>
+
+    <section class="panel panel--levels" data-panel="levels" hidden>
+      <div class="panel__head">
+        <h2 class="panel__title">Nivel del índice</h2>
+        <p class="panel__desc">
+          Evolución del índice (base Dic-2016 = 100) por categoría.
+        </p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-levels"></canvas>
+      </div>
+    </section>
+
+    <section class="panel panel--breakdown" data-panel="breakdown" hidden>
+      <div class="panel__head">
+        <h2 class="panel__title">Detalle por categoría</h2>
+        <p class="panel__desc">Último dato, variación mensual e interanual.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="series-table" id="series-table">
+          <thead>
+            <tr>
+              <th scope="col">Serie</th>
+              <th scope="col">Tipo</th>
+              <th scope="col" class="num">Último</th>
+              <th scope="col" class="num">Mensual</th>
+              <th scope="col" class="num">Interanual</th>
+              <th scope="col">Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="series-tbody">
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Status / error zone -->
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__block">
+        <span class="site-footer__label">Fuente</span>
+        <span class="site-footer__value">INDEC · API datos.gob.ar</span>
+      </div>
+      <div class="site-footer__block">
+        <span class="site-footer__label">Snapshot</span>
+        <span class="site-footer__value" id="snapshot-time">—</span>
+      </div>
+      <div class="site-footer__block">
+        <span class="site-footer__label">Versión</span>
+        <span class="site-footer__value">v0.1 · MVP IPC</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/loader.js"></script>
+  <script src="assets/charts.js"></script>
+  <script src="assets/ui.js"></script>
+  <script>
+    // Orchestration entry point
+    (async () => {
+      let data;
+      try {
+        data = await loadIpcSnapshot('./data/ipc.json');
+      } catch (err) {
+        console.error(err);
+        setStatus(`No se pudieron cargar los datos: ${err.message}`, 'error');
+        return;
+      }
+      try {
+        renderHeadline(data);
+        renderVariationsPicker(data);
+        renderSnapshotMeta(data);
+        renderBreakdownTable(data);
+
+        if (typeof Chart === 'undefined') {
+          setStatus(
+            'Chart.js no pudo cargarse (revisá tu conexión a internet). El detalle y los números de portada funcionan igual.',
+            'error'
+          );
+        } else {
+          renderVariationsChart(data);
+          renderLevelsChart(data);
+          setStatus('');
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus(`Error al renderizar el dashboard: ${err.message}`, 'error');
+      }
+      initTabs();
+    })();
+  </script>
+</body>
+</html>
